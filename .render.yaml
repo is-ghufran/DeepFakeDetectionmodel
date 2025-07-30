@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: deepfake-backend
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: ./backend/start.sh
+    envVars:
+      - key: PORT
+        value: 8000
+    plan: free
+    region: oregon

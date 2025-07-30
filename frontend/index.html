@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IlluSense - AI Deepfake Detector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Set theme on initial load
+      if (
+        localStorage.theme === "dark" ||
+        (!("theme" in localStorage) &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    </script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .hero-bg {
+        background-image: url("https://placehold.co/1920x1080/f1f5f9/f1f5f9"); /* Light mode bg */
+        background-size: cover;
+        background-position: center;
+        position: relative;
+      }
+      .dark .hero-bg {
+        background-image: url("https://placehold.co/1920x1080/030712/030712"); /* Dark mode bg */
+      }
+      /* Corrected CSS Gradient Syntax */
+      .hero-bg::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          to top,
+          rgb(255 255 255 / 1),
+          rgb(255 255 255 / 0.8),
+          transparent
+        );
+      }
+      .dark .hero-bg::before {
+        background: linear-gradient(
+          to top,
+          rgb(3 7 18 / 1),
+          rgb(3 7 18 / 0.8),
+          transparent
+        );
+      }
+      .glass-effect {
+        backdrop-filter: blur(10px);
+        border-width: 1px;
+      }
+      .brand-gradient {
+        background: linear-gradient(90deg, #22d3ee, #38bdf8, #818cf8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .cta-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgb(14 165 233 / 0.1),
+          0 4px 6px -4px rgb(14 165 233 / 0.1);
+      }
+      .gemini-button {
+        background: linear-gradient(90deg, #38bdf8, #c084fc);
+        transition: all 0.3s ease;
+      }
+      .gemini-button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(192, 132, 252, 0.5);
+      }
+      #result-circle {
+        transition: stroke-dashoffset 1s ease-out;
+      }
+    </style>
+  </head>
+  <body
+    class="w-full bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300"
+  >
+    <!-- Header / Navbar -->
+    <header
+      class="fixed top-0 left-0 right-0 z-50 glass-effect bg-white/80 border-gray-200 dark:bg-gray-800/50 dark:border-gray-700"
+    >
+      <nav
+        class="container mx-auto px-6 py-4 flex justify-between items-center"
+      >
+        <a href="#" class="text-2xl font-bold text-gray-900 dark:text-white"
+          ><span class="brand-gradient">◉</span> IlluSense</a
+        >
+        <!-- Desktop Menu -->
+        <div class="hidden md:flex items-center space-x-6">
+          <a
+            href="#"
+            class="text-gray-700 dark:text-gray-300 hover:text-sky-500 dark:hover:text-white transition font-medium"
+            >Home</a
+          >
+          <a
+            href="#what-is-deepfake"
+            class="text-gray-700 dark:text-gray-300 hover:text-sky-500 dark:hover:text-white transition font-medium"
+            >What is Deepfake?</a
+          >
+          <a
+            href="#features"
+            class="text-gray-700 dark:text-gray-300 hover:text-sky-500 dark:hover:text-white transition font-medium"
+            >Features</a
+          >
+          <a
+            href="#how-it-works"
+            class="text-gray-700 dark:text-gray-300 hover:text-sky-500 dark:hover:text-white transition font-medium"
+            >How It Works</a
+          >
+          <button
+            id="theme-toggle"
+            class="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            <svg
+              id="theme-toggle-dark-icon"
+              class="hidden w-5 h-5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
+              ></path>
+            </svg>
+            <svg
+              id="theme-toggle-light-icon"
+              class="hidden w-5 h-5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 8.486a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z"
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </button>
+          <a
+            href="#detect-section"
+            class="cta-button bg-sky-500 text-white transition-all duration-300 font-semibold py-2 px-4 rounded-lg"
+            >Detect Now</a
+          >
+        </div>
+        <!-- Mobile Menu Button -->
+        <div class="md:hidden flex items-center">
+          <button
+            id="theme-toggle-mobile"
+            class="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 mr-2"
+          >
+            <svg
+              id="theme-toggle-dark-icon-mobile"
+              class="hidden w-5 h-5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
+              ></path>
+            </svg>
+            <svg
+              id="theme-toggle-light-icon-mobile"
+              class="hidden w-5 h-5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 8.486a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM3 11a1 1 0 100-2H2a1 1 0 100 2h1z"
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </button>
+          <button
+            id="mobile-menu-button"
+            class="text-gray-700 dark:text-gray-300 hover:text-sky-500 dark:hover:text-white focus:outline-none"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16m-7 6h7"
+              ></path>
+            </svg>
+          </button>
+        </div>
+      </nav>
+      <!-- Mobile Menu Panel -->
+      <div
+        id="mobile-menu"
+        class="hidden md:hidden glass-effect bg-white/95 border-gray-200 dark:bg-gray-800/80 dark:border-gray-700"
+      >
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <a
+            href="#"
+            class="block px-3 py-2 rounded-md text-base font-medium text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >Home</a
+          >
+          <a
+            href="#what-is-deepfake"
+            class="block px-3 py-2 rounded-md text-base font-medium text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >What is Deepfake?</a
+          >
+          <a
+            href="#features"
+            class="block px-3 py-2 rounded-md text-base font-medium text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >Features</a
+          >
+          <a
+            href="#how-it-works"
+            class="block px-3 py-2 rounded-md text-base font-medium text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >How It Works</a
+          >
+          <a
+            href="#detect-section"
+            class="block px-3 py-2 rounded-md text-base font-medium text-sky-600 dark:text-sky-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >Detect Now</a
+          >
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section
+      class="hero-bg min-h-screen flex items-center justify-center pt-20"
+    >
+      <div
+        class="relative container mx-auto px-6 text-center flex flex-col md:flex-row items-center gap-8"
+      >
+        <div class="md:w-1/2 md:text-left">
+          <h1 class="text-4xl md:text-6xl font-extrabold leading-tight">
+            <span class="text-blue-600">Unmask</span>
+            <span class="text-gray-900 dark:text-white">
+              the Illusion with
+            </span>
+            <span
+              class="bg-gradient-to-r from-sky-500 to-purple-500 bg-clip-text text-transparent"
+              >IlluSense</span
+            >
+          </h1>
+
+          <p
+            class="mt-4 text-lg text-gray-800 dark:text-gray-300 max-w-xl mx-auto md:mx-0"
+          >
+            Harness the power of cutting-edge artificial intelligence to detect
+            and expose deepfakes, safeguarding truth in the digital age.
+          </p>
+
+          <a
+            href="#detect-section"
+            class="cta-button bg-sky-500 text-white transition-all duration-300 inline-block mt-8 font-bold py-3 px-8 rounded-lg text-lg"
+          >
+            Start Detecting
+          </a>
+        </div>
+
+        <div class="md:w-1/2 mt-12 md:mt-0">
+          <img
+            src="https://placehold.co/600x400/0f172a/38bdf8?text=AI+Vision&font=inter"
+            alt="AI Vision Interface"
+            class="rounded-2xl opacity-80 shadow-2xl"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- What is Deepfake Section -->
+    <section id="what-is-deepfake" class="py-20 md:py-32">
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-12">
+          <h2
+            class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white"
+          >
+            What is a <span class="brand-gradient">Deepfake</span>?
+          </h2>
+          <p
+            class="mt-4 text-lg text-gray-700 dark:text-gray-400 max-w-3xl mx-auto"
+          >
+            Deepfakes are synthetic media where a person in an existing image or
+            video is replaced with someone else's likeness using powerful AI
+            techniques.
+          </p>
+        </div>
+        <div class="flex flex-col md:flex-row items-center gap-12">
+          <div class="md:w-1/2">
+            <img
+              src="https://placehold.co/500x350/e2e8f0/334155?text=Synthetic+Media"
+              alt="Illustration of synthetic media"
+              class="rounded-xl shadow-lg"
+            />
+          </div>
+          <div class="md:w-1/2">
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+              These manipulations are created using deep learning models,
+              specifically generative adversarial networks (GANs). While they
+              can be used for creative purposes like in film, they also pose a
+              significant threat through misinformation, fraud, and harassment.
+              Distinguishing them from authentic content is a growing challenge,
+              which is why tools like IlluSense are essential.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section
+      id="features"
+      class="py-20 md:py-32 bg-gray-100 dark:bg-gray-900/50"
+    >
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+          <h2
+            class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white"
+          >
+            Core Features
+          </h2>
+          <p class="mt-4 text-lg text-gray-700 dark:text-gray-400">
+            Advanced capabilities to ensure reliable detection.
+          </p>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <!-- Feature Card 1 -->
+          <div
+            class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-2 transition-all duration-300"
+          >
+            <div
+              class="bg-sky-100 dark:bg-sky-900/50 text-sky-500 dark:text-sky-400 rounded-full w-12 h-12 flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M12 6V3m0 18v-3"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">
+              AI-Powered Analysis
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Utilizes a CNN+RNN model to detect spatial and temporal artifacts.
+            </p>
+          </div>
+          <!-- Feature Card 2 -->
+          <div
+            class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-2 transition-all duration-300"
+          >
+            <div
+              class="bg-green-100 dark:bg-green-900/50 text-green-500 dark:text-green-400 rounded-full w-12 h-12 flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">
+              Fast & Accurate
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Optimized for quick processing without compromising on detection
+              accuracy.
+            </p>
+          </div>
+          <!-- Feature Card 3 -->
+          <div
+            class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-2 transition-all duration-300"
+          >
+            <div
+              class="bg-purple-100 dark:bg-purple-900/50 text-purple-500 dark:text-purple-400 rounded-full w-12 h-12 flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">
+              Interactive Results
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Clear, visual feedback with confidence scores for every analysis.
+            </p>
+          </div>
+          <!-- Feature Card 4 -->
+          <div
+            class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-2 transition-all duration-300"
+          >
+            <div
+              class="bg-fuchsia-100 dark:bg-fuchsia-900/50 text-fuchsia-500 dark:text-fuchsia-400 rounded-full w-12 h-12 flex items-center justify-center mb-4"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10s5 2 5 2a8 8 0 016.343 7.343l-1.68-1.68-1.68 1.68z"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">
+              Gemini Explanations
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              Get fun, Gen-Z style explanations of the results powered by
+              Google's Gemini.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-20 md:py-32">
+      <div class="container mx-auto px-6">
+        <div class="text-center mb-16">
+          <h2
+            class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white"
+          >
+            How It Works
+          </h2>
+          <p class="mt-4 text-lg text-gray-700 dark:text-gray-400">
+            A simple yet powerful four-step process.
+          </p>
+        </div>
+        <div class="relative">
+          <!-- Connecting line -->
+          <div
+            class="hidden md:block absolute top-5 left-0 w-full h-0.5 bg-gray-300 dark:bg-gray-700"
+          ></div>
+          <div
+            class="relative flex flex-col md:flex-row justify-between gap-12"
+          >
+            <!-- Step 1 -->
+            <div class="text-center md:w-1/4">
+              <div class="relative">
+                <div
+                  class="mx-auto w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold border-4 border-white dark:border-gray-900"
+                >
+                  1
+                </div>
+              </div>
+              <h3 class="mt-6 text-xl font-bold text-gray-900 dark:text-white">
+                Upload Video
+              </h3>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">
+                You provide the video file for analysis.
+              </p>
+            </div>
+            <!-- Step 2 -->
+            <div class="text-center md:w-1/4">
+              <div class="relative">
+                <div
+                  class="mx-auto w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold border-4 border-white dark:border-gray-900"
+                >
+                  2
+                </div>
+              </div>
+              <h3 class="mt-6 text-xl font-bold text-gray-900 dark:text-white">
+                Frame Analysis
+              </h3>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">
+                Our CNN extracts key visual features from each frame.
+              </p>
+            </div>
+            <!-- Step 3 -->
+            <div class="text-center md:w-1/4">
+              <div class="relative">
+                <div
+                  class="mx-auto w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold border-4 border-white dark:border-gray-900"
+                >
+                  3
+                </div>
+              </div>
+              <h3 class="mt-6 text-xl font-bold text-gray-900 dark:text-white">
+                Temporal Check
+              </h3>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">
+                An RNN checks for inconsistencies between frames over time.
+              </p>
+            </div>
+            <!-- Step 4 -->
+            <div class="text-center md:w-1/4">
+              <div class="relative">
+                <div
+                  class="mx-auto w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold border-4 border-white dark:border-gray-900"
+                >
+                  4
+                </div>
+              </div>
+              <h3 class="mt-6 text-xl font-bold text-gray-900 dark:text-white">
+                Get Verdict
+              </h3>
+              <p class="mt-2 text-gray-600 dark:text-gray-400">
+                Receive a clear REAL or FAKE verdict with a confidence score.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detection Section (Uploader) -->
+    <section
+      id="detect-section"
+      class="py-20 md:py-32 bg-gray-100 dark:bg-gray-900/50"
+    >
+      <div class="w-full max-w-2xl mx-auto space-y-8 px-4">
+        <main id="uploader" class="glass-effect p-8 rounded-2xl">
+          <h2
+            class="text-3xl font-bold text-center mb-6 text-gray-900 dark:text-white"
+          >
+            Upload Your Video
+          </h2>
+          <div
+            id="file-drop-zone"
+            class="relative block w-full border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-12 text-center hover:border-sky-500 dark:hover:border-sky-400 transition-colors duration-300 cursor-pointer"
+          >
+            <input
+              type="file"
+              id="video-upload"
+              accept="video/mp4,video/quicktime"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div class="flex flex-col items-center justify-center space-y-4">
+              <svg
+                class="w-12 h-12 text-gray-500 dark:text-gray-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v12.75"
+                />
+              </svg>
+              <p class="text-lg font-medium text-gray-700 dark:text-gray-300">
+                Drag & Drop your video here
+              </p>
+              <p class="text-sm text-gray-500 dark:text-gray-500">
+                or
+                <span class="text-sky-500 dark:text-sky-400 font-semibold"
+                  >click to browse</span
+                >
+              </p>
+              <p
+                id="file-name"
+                class="text-sm text-fuchsia-500 dark:text-fuchsia-400 font-medium pt-2"
+              ></p>
+            </div>
+          </div>
+          <button
+            id="detect-button"
+            class="w-full mt-6 cta-button bg-sky-500 text-white transition-all duration-300 font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+            disabled
+          >
+            Detect Authenticity
+          </button>
+        </main>
+
+        <div id="result-container" class="hidden text-center">
+          <div
+            id="loading-spinner"
+            class="hidden flex flex-col items-center justify-center space-y-4 p-8"
+          >
+            <svg
+              class="animate-spin h-12 w-12 text-sky-500 dark:text-sky-400"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <p class="text-lg font-medium text-gray-700 dark:text-gray-300">
+              Analyzing video... This might take a moment.
+            </p>
+          </div>
+
+          <div
+            id="result-display"
+            class="hidden glass-effect p-8 rounded-2xl flex flex-col items-center space-y-6"
+          >
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+              Analysis Complete
+            </h2>
+            <div class="relative w-48 h-48">
+              <svg class="w-full h-full" viewBox="0 0 100 100">
+                <circle
+                  class="text-gray-300 dark:text-gray-700"
+                  stroke-width="10"
+                  stroke="currentColor"
+                  fill="transparent"
+                  r="45"
+                  cx="50"
+                  cy="50"
+                />
+                <circle
+                  id="result-circle"
+                  class="transform -rotate-90 origin-center"
+                  stroke-width="10"
+                  stroke-linecap="round"
+                  stroke="currentColor"
+                  fill="transparent"
+                  r="45"
+                  cx="50"
+                  cy="50"
+                />
+              </svg>
+              <div
+                id="result-text"
+                class="absolute inset-0 flex flex-col items-center justify-center"
+              >
+                <span id="result-label" class="text-3xl font-bold"></span>
+                <span
+                  id="result-score"
+                  class="text-sm text-gray-500 dark:text-gray-400"
+                ></span>
+              </div>
+            </div>
+            <p id="result-filename" class="text-sm text-gray-500"></p>
+
+            <div id="gemini-section" class="w-full pt-4 space-y-4">
+              <button
+                id="gemini-button"
+                class="w-full max-w-xs mx-auto gemini-button text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:ring-opacity-50"
+              >
+                ✨ Spill the Tea
+              </button>
+              <div
+                id="gemini-loading"
+                class="hidden text-sky-500 dark:text-sky-400"
+              >
+                getting the hot take...
+              </div>
+              <div
+                id="gemini-result"
+                class="hidden bg-gray-200 dark:bg-gray-800 p-4 rounded-lg text-left text-gray-700 dark:text-gray-300 italic"
+              ></div>
+            </div>
+
+            <button
+              id="reset-button"
+              class="w-full max-w-xs bg-gray-500 dark:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition-colors duration-300"
+            >
+              Analyze Another Video
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      // --- Theme Toggle Logic ---
+      const themeToggleBtn = document.getElementById("theme-toggle");
+      const themeToggleMobileBtn = document.getElementById(
+        "theme-toggle-mobile"
+      );
+      const darkIcon = document.getElementById("theme-toggle-dark-icon");
+      const lightIcon = document.getElementById("theme-toggle-light-icon");
+      const darkIconMobile = document.getElementById(
+        "theme-toggle-dark-icon-mobile"
+      );
+      const lightIconMobile = document.getElementById(
+        "theme-toggle-light-icon-mobile"
+      );
+
+      const updateIcons = () => {
+        if (document.documentElement.classList.contains("dark")) {
+          lightIcon.classList.remove("hidden");
+          darkIcon.classList.add("hidden");
+          lightIconMobile.classList.remove("hidden");
+          darkIconMobile.classList.add("hidden");
+        } else {
+          lightIcon.classList.add("hidden");
+          darkIcon.classList.remove("hidden");
+          lightIconMobile.classList.add("hidden");
+          darkIconMobile.classList.remove("hidden");
+        }
+      };
+
+      const toggleTheme = () => {
+        document.documentElement.classList.toggle("dark");
+        localStorage.theme = document.documentElement.classList.contains("dark")
+          ? "dark"
+          : "light";
+        updateIcons();
+      };
+
+      themeToggleBtn.addEventListener("click", toggleTheme);
+      themeToggleMobileBtn.addEventListener("click", toggleTheme);
+      updateIcons(); // Set initial icon state
+
+      // --- Mobile Menu Toggle ---
+      const mobileMenuButton = document.getElementById("mobile-menu-button");
+      const mobileMenu = document.getElementById("mobile-menu");
+      mobileMenuButton.addEventListener("click", () => {
+        mobileMenu.classList.toggle("hidden");
+      });
+
+      // --- All previous JavaScript logic remains the same ---
+      const dropZone = document.getElementById("file-drop-zone");
+      const fileInput = document.getElementById("video-upload");
+      const fileNameDisplay = document.getElementById("file-name");
+      const detectButton = document.getElementById("detect-button");
+      const uploaderSection = document.getElementById("uploader");
+      const resultContainer = document.getElementById("result-container");
+      const loadingSpinner = document.getElementById("loading-spinner");
+      const resultDisplay = document.getElementById("result-display");
+      const resultCircle = document.getElementById("result-circle");
+      const resultLabel = document.getElementById("result-label");
+      const resultScore = document.getElementById("result-score");
+      const resultFilename = document.getElementById("result-filename");
+      const resetButton = document.getElementById("reset-button");
+      const geminiButton = document.getElementById("gemini-button");
+      const geminiLoading = document.getElementById("gemini-loading");
+      const geminiResult = document.getElementById("gemini-result");
+
+      let selectedFile = null;
+      let lastPrediction = {};
+
+      const handleFileSelect = (file) => {
+        if (file && file.type.startsWith("video/")) {
+          selectedFile = file;
+          fileNameDisplay.textContent = file.name;
+          detectButton.disabled = false;
+          dropZone.classList.add("border-sky-500", "dark:border-sky-400");
+        } else {
+          alert("Please select a valid video file (MP4, MOV).");
+        }
+      };
+
+      // Corrected: Removed redundant click listener
+      fileInput.addEventListener("change", (e) =>
+        handleFileSelect(e.target.files[0])
+      );
+
+      ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(
+          eventName,
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          },
+          false
+        );
+      });
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropZone.addEventListener(
+          eventName,
+          () => dropZone.classList.add("bg-gray-100", "dark:bg-gray-700/50"),
+          false
+        );
+      });
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(
+          eventName,
+          () => dropZone.classList.remove("bg-gray-100", "dark:bg-gray-700/50"),
+          false
+        );
+      });
+      dropZone.addEventListener(
+        "drop",
+        (e) => handleFileSelect(e.dataTransfer.files[0]),
+        false
+      );
+
+      detectButton.addEventListener("click", async () => {
+        if (!selectedFile) return;
+
+        uploaderSection.classList.add("hidden");
+        resultContainer.classList.remove("hidden");
+        loadingSpinner.classList.remove("hidden");
+        resultDisplay.classList.add("hidden");
+        geminiResult.classList.add("hidden");
+        geminiResult.textContent = "";
+
+        const formData = new FormData();
+        formData.append("video_file", selectedFile);
+
+        try {
+          const response = await fetch("http://127.0.0.1:8000/predict/", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Something went wrong");
+          }
+
+          const data = await response.json();
+          lastPrediction = data;
+          displayResults(data);
+        } catch (error) {
+          alert(`Error: ${error.message}`);
+          resetUI();
+        }
+      });
+
+      geminiButton.addEventListener("click", async () => {
+        if (!lastPrediction.prediction) return;
+
+        geminiLoading.classList.remove("hidden");
+        geminiButton.classList.add("hidden");
+        geminiResult.classList.add("hidden");
+
+        const { prediction, confidence_score } = lastPrediction;
+        const url = `http://127.0.0.1:8000/analyze_verdict/?prediction=${prediction}&confidence=${confidence_score}`;
+
+        try {
+          const response = await fetch(url, { method: "POST" });
+          if (!response.ok) {
+            throw new Error("Failed to get explanation from AI.");
+          }
+          const data = await response.json();
+          geminiResult.textContent = data.explanation;
+          geminiResult.classList.remove("hidden");
+        } catch (error) {
+          geminiResult.textContent = `Error: ${error.message}`;
+          geminiResult.classList.remove("hidden");
+        } finally {
+          geminiLoading.classList.add("hidden");
+        }
+      });
+
+      const displayResults = (data) => {
+        loadingSpinner.classList.add("hidden");
+        resultDisplay.classList.remove("hidden");
+
+        const isFake = data.prediction === "FAKE";
+        const confidence = isFake
+          ? data.confidence_score
+          : 1 - data.confidence_score;
+        const percentage = Math.round(confidence * 100);
+
+        resultLabel.textContent = data.prediction;
+        resultScore.textContent = `${percentage}% ${isFake ? "Fake" : "Real"}`;
+        resultFilename.textContent = data.filename;
+
+        const colorClass = isFake ? "text-fuchsia-500" : "text-green-500";
+        resultCircle.classList.remove("text-fuchsia-500", "text-green-500");
+        resultCircle.classList.add(colorClass);
+        resultLabel.classList.remove("text-fuchsia-500", "text-green-500");
+        resultLabel.classList.add(colorClass);
+
+        const radius = resultCircle.r.baseVal.value;
+        const circumference = 2 * Math.PI * radius;
+        resultCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        const offset = circumference - confidence * circumference;
+        setTimeout(() => {
+          resultCircle.style.strokeDashoffset = offset;
+        }, 100);
+      };
+
+      const resetUI = () => {
+        selectedFile = null;
+        lastPrediction = {};
+        fileInput.value = "";
+        fileNameDisplay.textContent = "";
+        detectButton.disabled = true;
+        dropZone.classList.remove("border-sky-500", "dark:border-sky-400");
+
+        document.getElementById("detect-section").scrollIntoView();
+        uploaderSection.classList.remove("hidden");
+
+        resultContainer.classList.add("hidden");
+        loadingSpinner.classList.add("hidden");
+        resultDisplay.classList.add("hidden");
+
+        geminiResult.classList.add("hidden");
+        geminiResult.textContent = "";
+        geminiButton.classList.remove("hidden");
+        geminiLoading.classList.add("hidden");
+      };
+
+      resetButton.addEventListener("click", resetUI);
+    </script>
+  </body>
+</html>
